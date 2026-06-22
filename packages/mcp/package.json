@@ -1,0 +1,55 @@
+{
+  "name": "@clearedby/mcp",
+  "version": "0.0.3",
+  "description": "ClearedBy MCP server — request_clearance, check_policy, get_ledger from any MCP client.",
+  "license": "MIT",
+  "homepage": "https://clearedby.com",
+  "type": "module",
+  "main": "./src/index.ts",
+  "bin": {
+    "clearedby-mcp": "./src/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "clearedby",
+    "approval",
+    "human-in-the-loop",
+    "ai-agents"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ClearedBy/clearedby-js.git",
+    "directory": "packages/mcp"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "pnpm build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clearedby/sdk": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "bin": {
+      "clearedby-mcp": "./dist/index.js"
+    }
+  }
+}

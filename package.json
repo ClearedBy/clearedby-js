@@ -1,0 +1,9 @@
+{
+  "name": "clearedby-js",
+  "private": true,
+  "description": "Official ClearedBy JavaScript clients — @clearedby/sdk, @clearedby/mcp, and runnable examples.",
+  "license": "MIT",
+  "packageManager": "pnpm@11.6.0",
+  "repository": { "type": "git", "url": "git+https://github.com/ClearedBy/clearedby-js.git" },
+  "homepage": "https://clearedby.com"
+}
