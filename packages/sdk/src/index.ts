@@ -43,7 +43,7 @@ export interface GateResult {
   expires_at?: string
   routed_to?: string[]
   attestation?: { seq: number; hash: string; signature?: string }
-  resume?: { mode: 'poll' | 'webhook'; poll?: string; wait?: string; callback_url?: string }
+  resume?: { mode: 'poll' | 'webhook'; poll?: string; wait?: string; callback_url?: string; signing_secret?: string }
   reason?: string | null
   /** Revise chain position (CLE-140): 1 = original, N = the Nth resubmission. */
   attempt?: number
