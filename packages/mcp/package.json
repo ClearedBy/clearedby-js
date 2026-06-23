@@ -1,6 +1,6 @@
 {
   "name": "@clearedby/mcp",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "ClearedBy MCP server — request_clearance, check_policy, get_ledger from any MCP client.",
   "license": "MIT",
   "homepage": "https://clearedby.com",

@@ -28,7 +28,10 @@ jobs:
         with:
           node-version: 22
           registry-url: "https://registry.npmjs.org"
-      - run: pnpm install --no-frozen-lockfile
+      # --ignore-scripts: skip dependency build scripts (esbuild etc.) — not
+      # needed to publish, and pnpm 10+ otherwise errors on "ignored builds".
+      # The package's own prepublishOnly (tsc build) still runs during publish.
+      - run: pnpm install --no-frozen-lockfile --ignore-scripts
       - run: pnpm --filter "${{ inputs.package }}" publish --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
