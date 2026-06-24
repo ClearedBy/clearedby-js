@@ -154,6 +154,24 @@ this freely for one-off evidence — it always shows, it just isn't bespoke-styl
 
 ---
 
+## Layout — side-by-side cards
+
+Each evidence item takes an optional **`width`** alongside `type`/`value`:
+
+| `width` | effect |
+| --- | --- |
+| `"half"` | the card can pair beside another `half` card |
+| `"full"` | the card takes the whole row |
+| *(omitted)* | sensible default — **`threshold` and `entity` render `half`**, everything else `full` |
+
+```jsonc
+{ "type": "threshold", "value": { … }, "width": "half" }
+```
+
+So compact cards (a bar, a profile) sit two-up while rich cards (a thread, an image) get the full width — automatically, with no `width` needed. It's a responsive flex layout: below the half cards' min-width everything stacks, so the narrow ledger drawer is never cramped.
+
+---
+
 ## Notes
 
 - **Integrity, not veracity.** The evidence is hashed into the signed attestation (`context_hash`), so an auditor

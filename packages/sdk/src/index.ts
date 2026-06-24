@@ -44,7 +44,7 @@ export interface ProofCase {
  * `type` below; any other `type` falls back to a generic key/value card — so
  * you can always invent your own and it still shows.
  */
-export type Evidence =
+export type Evidence = (
   | { type: 'threshold'; value: ThresholdEvidence }
   | { type: 'entity'; value: EntityEvidence }
   | { type: 'timeline'; value: TimelineEntry[] }
@@ -54,6 +54,15 @@ export type Evidence =
   | { type: 'conversation'; value: ConversationEvidence }
   | { type: 'note'; value: string }
   | { type: string; value: unknown }
+) & {
+  /**
+   * Layout hint in the reviewer's dossier. 'half' lets the card pair beside
+   * another half card; 'full' takes the whole row. Omit for a sensible default:
+   * threshold/entity render 'half', everything else 'full'. Narrow widths stack
+   * regardless.
+   */
+  width?: 'half' | 'full'
+}
 
 /** A measured value against a limit — renders as a labelled bar. */
 export interface ThresholdEvidence {
