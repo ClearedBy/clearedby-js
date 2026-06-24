@@ -43,15 +43,22 @@ export async function requestClearance(
     model?: string // the model behind the agent, e.g. claude-opus-4-8
     confidence?: number // 0..1
     reason?: string // the agent's justification
+    recommendedOutcome?: string // e.g. approve_refund
+    riskFlags?: string[] // things the reviewer should weigh
+    evidence?: { type: string; value: unknown }[] // typed evidence cards (CLE-96/97)
     parentItemId?: string // resubmit a sent-back item against this parent (CLE-140 revise loop)
   },
 ): Promise<ToolResult> {
   try {
     // Real provenance + proof case so the review card shows who proposed this,
-    // on what model, with what confidence — not the 'agent'/'—'/'90%' defaults.
+    // on what model, with what confidence, and the evidence behind it — not the
+    // 'agent'/'—'/'90%' defaults. Snake_case keys are what the gate stores.
     const proof: Record<string, unknown> = {}
     if (typeof args.confidence === 'number') proof.confidence = args.confidence
     if (args.reason) proof.reason = args.reason
+    if (args.recommendedOutcome) proof.recommended_outcome = args.recommendedOutcome
+    if (args.riskFlags && args.riskFlags.length > 0) proof.risk_flags = args.riskFlags
+    if (args.evidence && args.evidence.length > 0) proof.evidence = args.evidence
     const context: Record<string, unknown> = {}
     if (args.summary) context.summary = args.summary
     if (args.agentId) context.agent_id = args.agentId

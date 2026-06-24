@@ -25,6 +25,31 @@ A reviewer can **send an action back to revise** instead of approving or rejecti
 An agent that treats `sent_back` as a rejection throws away the feedback loop that
 makes a human-in-the-loop worth having.
 
+### Proof cases & evidence
+
+Pass the **case** for an action — not just the action — so the reviewer can decide in seconds.
+`request_clearance` takes `confidence`, `reason`, `recommendedOutcome`, `riskFlags`, and typed `evidence` cards:
+
+```jsonc
+request_clearance {
+  "action": "refund.create",
+  "params": { "amount": 420, "order": "SO-118" },
+  "reason": "Item arrived damaged; delivery confirmed.",
+  "confidence": 0.9,
+  "recommendedOutcome": "approve_refund",
+  "evidence": [
+    { "type": "threshold", "value": { "label": "Refund vs order total", "value": 420, "limit": 400, "unit": "£" } },
+    { "type": "entity",    "value": { "name": "a.popov@example.com", "fields": [{ "label": "Prior refunds", "value": 1 }] } },
+    { "type": "timeline",  "value": [{ "label": "Damage reported", "at": "Jun 10" }] },
+    { "type": "source",    "value": { "title": "Support ticket #4821", "snippet": "…arrived cracked…" } }
+  ]
+}
+```
+
+The reviewer sees friendly cards (`threshold`, `entity`, `timeline`, `table`, `media`, `source`, `conversation`;
+any other type falls back to a generic card). `conversation` is a chat/support thread, rendered as bubbles. ClearedBy **presents** the case and pins it, tamper-evident, to the decision — it
+never claims the evidence is *true*; the human rules on it. Same vocabulary as the [SDK](../sdk#proof-cases--evidence).
+
 ## Run it
 
 ```bash

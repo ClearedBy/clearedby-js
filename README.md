@@ -108,6 +108,39 @@ This is the headline human-in-the-loop pattern — see [`examples/shopify-refund
 
 ---
 
+## Proof cases & evidence — make a held action reviewable
+
+When an action is held for a human, attach the **case for it** so the reviewer can decide in seconds without
+leaving the dashboard. Add an optional `proof` to any `gate()`:
+
+```ts
+await cb.gate({
+  action: 'refund.create',
+  params: { amount: 420, order: 'SO-118' },
+  proof: {
+    reason: 'Item arrived damaged; delivery confirmed.',
+    confidence: 0.9,
+    recommended_outcome: 'approve_refund',
+    evidence: [
+      { type: 'threshold', value: { label: 'Refund vs order total', value: 420, limit: 400, unit: '£' } },
+      { type: 'entity',    value: { name: 'a.popov@example.com', fields: [{ label: 'Prior refunds', value: 1 }] } },
+      { type: 'timeline',  value: [{ label: 'Damage reported', at: 'Jun 10' }] },
+      { type: 'source',    value: { title: 'Support ticket #4821', snippet: '…arrived cracked…' } },
+    ],
+  },
+})
+```
+
+The reviewer sees friendly **evidence cards** — `threshold`, `entity`, `timeline`, `table`, `media`, `source`,
+`conversation` (a chat/support thread, shown as bubbles), with a generic fallback for any custom `type`. ClearedBy **presents** the case and pins it, tamper-evident, to
+the decision — it never claims the evidence is *true*; the human rules on it. Full vocabulary in the
+[SDK readme](packages/sdk#proof-cases--evidence).
+
+> Distinct from **Proof-of-execution** below: this is the agent's case *before* a decision; that records what was
+> actually *done after*.
+
+---
+
 ## Proof-of-execution
 
 After you actually carry out a cleared action, record that you did it onto the attestation chain — so the

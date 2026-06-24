@@ -138,6 +138,18 @@ async function main() {
             ],
           },
           { type: 'source', value: { title: `Support ticket · ${order.name}`, snippet: refund.reason } },
+          {
+            type: 'conversation',
+            value: {
+              title: `Support thread · ${order.name}`,
+              messages: [
+                { from: 'customer', text: 'The item arrived damaged — the base is cracked.', at: 'Jun 10' },
+                { from: 'agent', text: 'So sorry to hear that. Could you attach a photo?', at: 'Jun 10' },
+                // a message can carry an image — the reviewer sees it inline in the bubble
+                { from: 'customer', text: 'Here it is:', image: 'https://cdn.example.com/tickets/SO-118/damage.jpg', at: 'Jun 10' },
+              ],
+            },
+          },
         ],
       },
     }

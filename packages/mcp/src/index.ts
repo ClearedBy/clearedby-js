@@ -22,7 +22,7 @@ async function main() {
 
   server.tool(
     'request_clearance',
-    'Gate a consequential action before doing it. Returns one of: cleared (safe to proceed), rejected (do NOT proceed), or sent_back (revise & resubmit — NOT a rejection: address the reviewer note, then call this tool again with parentItemId set to the returned parent_item_id). If held for a human it waits up to 10 minutes. Pass model + confidence + reason so the reviewer sees a real proof case, not placeholders.',
+    'Gate a consequential action before doing it. Returns one of: cleared (safe to proceed), rejected (do NOT proceed), or sent_back (revise & resubmit — NOT a rejection: address the reviewer note, then call this tool again with parentItemId set to the returned parent_item_id). If held for a human it waits up to 10 minutes. Pass model + confidence + reason + evidence cards so the reviewer sees a real proof case, not placeholders.',
     {
       action: z.string().describe('e.g. refund.create, ad.launch'),
       params: z.record(z.unknown()).optional().describe('the action parameters, e.g. { amount: 250 }'),
@@ -30,7 +30,19 @@ async function main() {
       summary: z.string().optional().describe('one-line human summary for the reviewer'),
       model: z.string().optional().describe('the model proposing this action, e.g. claude-opus-4-8'),
       confidence: z.number().min(0).max(1).optional().describe('your confidence this should be cleared, 0..1'),
-      reason: z.string().optional().describe('why this should be cleared — your justification/evidence'),
+      reason: z.string().optional().describe('why this should be cleared — your justification'),
+      recommendedOutcome: z.string().optional().describe('the outcome you recommend, e.g. approve_refund — shown to the reviewer as a "recommends ·" pill'),
+      riskFlags: z.array(z.string()).optional().describe('things the reviewer should weigh, e.g. ["high_value","first_order"]'),
+      evidence: z
+        .array(z.object({ type: z.string(), value: z.unknown() }))
+        .optional()
+        .describe(
+          'typed evidence cards the reviewer sees. Known types render as friendly cards: ' +
+            'threshold {label,value,limit?,unit?} · entity {name,subtitle?,fields?:[{label,value}],badges?:[{label,tone?}]} · ' +
+            'timeline [{label,at?,detail?}] · table {columns,rows} · media {url|dataUrl,caption?} · source {title?,url?,snippet?} · ' +
+            'conversation {title?,messages:[{from?,text?,image?,at?}]} (a chat/support thread shown as bubbles; a message can carry an image). ' +
+            'Any other type falls back to a generic key/value card.',
+        ),
       parentItemId: z
         .string()
         .optional()

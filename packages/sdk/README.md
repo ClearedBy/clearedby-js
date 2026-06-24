@@ -100,12 +100,16 @@ await cb.gate({
           badges: [{ label: 'damaged item', tone: 'warn' }] } },
       { type: 'timeline', value: [{ label: 'Delivered', at: 'Jun 9' }, { label: 'Damage reported', at: 'Jun 10' }] },
       { type: 'source', value: { title: 'Support ticket #4821', snippet: '…arrived cracked…', url: 'https://…' } },
+      { type: 'conversation', value: { title: 'Support thread #4821', messages: [
+          { from: 'customer', text: 'The lamp arrived cracked.', at: 'Jun 10' },
+          { from: 'agent', text: 'So sorry — could you send a photo?', at: 'Jun 10' },
+          { from: 'customer', text: 'Here it is:', image: 'https://…/damage.jpg', at: 'Jun 10' } ] } },
     ],
   },
 })
 ```
 
-The reviewer sees a **Proof Case** panel — recommended outcome, confidence, reason, risk flags, and a **friendly card per evidence item**. Recognised `type`s (`threshold`, `entity`, `timeline`, `table`, `media`, `source`) render as cards; **any other `type` falls back to a generic key/value card**, so you can always invent your own. The typed shapes (`ThresholdEvidence`, `EntityEvidence`, …) are exported — annotate a `value` (or use `satisfies Evidence`) to get them checked.
+The reviewer sees a **Proof Case** panel — recommended outcome, confidence, reason, risk flags, and a **friendly card per evidence item**. Recognised `type`s (`threshold`, `entity`, `timeline`, `table`, `media`, `source`, `conversation`) render as cards — `conversation` is a chat/support thread shown as a message-bubble transcript; **any other `type` falls back to a generic key/value card**, so you can always invent your own. The typed shapes (`ThresholdEvidence`, `EntityEvidence`, …) are exported — annotate a `value` (or use `satisfies Evidence`) to get them checked.
 
 ClearedBy **presents** your case to a human and pins it, tamper-evident, to their decision — it does **not** verify the *truth* of evidence. The cards are your assertions; the reviewer rules on them. Set `verified: true` on a `source` only when it's independently checkable (e.g. a signed object). `proof` is optional and fully backward-compatible.
 

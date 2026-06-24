@@ -51,6 +51,7 @@ export type Evidence =
   | { type: 'table'; value: TableEvidence }
   | { type: 'media'; value: MediaEvidence }
   | { type: 'source'; value: SourceEvidence }
+  | { type: 'conversation'; value: ConversationEvidence }
   | { type: 'note'; value: string }
   | { type: string; value: unknown }
 
@@ -94,6 +95,21 @@ export interface SourceEvidence {
   snippet?: string
   /** Set true only if independently verifiable (e.g. a signed object). */
   verified?: boolean
+}
+/** A chat / support thread — renders as a message-bubble transcript. */
+export interface ConversationEvidence {
+  title?: string
+  messages: ConversationMessage[]
+}
+export interface ConversationMessage {
+  /** Sender label; 'customer' vs 'agent'/'support'/'system' drives bubble side + tint. */
+  from?: string
+  /** Message text. Optional — a message can be image-only. */
+  text?: string
+  /** An attached image (https or data: URL) — e.g. a photo the customer sent. */
+  image?: string
+  /** ISO timestamp or short label, shown under the bubble. */
+  at?: string
 }
 
 export interface GateInput {
