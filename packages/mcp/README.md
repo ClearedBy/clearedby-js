@@ -47,7 +47,8 @@ request_clearance {
 ```
 
 The reviewer sees friendly cards (`threshold`, `entity`, `timeline`, `table`, `media`, `source`, `conversation`;
-any other type falls back to a generic card). `conversation` is a chat/support thread, rendered as bubbles. ClearedBy **presents** the case and pins it, tamper-evident, to the decision — it
+any other type falls back to a generic card). `conversation` is a chat/support thread, rendered as bubbles.
+Every card type and field is catalogued in [EVIDENCE.md](https://github.com/ClearedBy/clearedby-js/blob/main/EVIDENCE.md). ClearedBy **presents** the case and pins it, tamper-evident, to the decision — it
 never claims the evidence is *true*; the human rules on it. Same vocabulary as the [SDK](../sdk#proof-cases--evidence).
 
 ## Run it

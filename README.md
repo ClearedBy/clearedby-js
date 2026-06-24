@@ -133,8 +133,9 @@ await cb.gate({
 
 The reviewer sees friendly **evidence cards** — `threshold`, `entity`, `timeline`, `table`, `media`, `source`,
 `conversation` (a chat/support thread, shown as bubbles), with a generic fallback for any custom `type`. ClearedBy **presents** the case and pins it, tamper-evident, to
-the decision — it never claims the evidence is *true*; the human rules on it. Full vocabulary in the
-[SDK readme](packages/sdk#proof-cases--evidence).
+the decision — it never claims the evidence is *true*; the human rules on it.
+
+**Every card type, every field → [EVIDENCE.md](EVIDENCE.md).**
 
 > Distinct from **Proof-of-execution** below: this is the agent's case *before* a decision; that records what was
 > actually *done after*.

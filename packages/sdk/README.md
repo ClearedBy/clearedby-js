@@ -109,7 +109,7 @@ await cb.gate({
 })
 ```
 
-The reviewer sees a **Proof Case** panel — recommended outcome, confidence, reason, risk flags, and a **friendly card per evidence item**. Recognised `type`s (`threshold`, `entity`, `timeline`, `table`, `media`, `source`, `conversation`) render as cards — `conversation` is a chat/support thread shown as a message-bubble transcript; **any other `type` falls back to a generic key/value card**, so you can always invent your own. The typed shapes (`ThresholdEvidence`, `EntityEvidence`, …) are exported — annotate a `value` (or use `satisfies Evidence`) to get them checked.
+The reviewer sees a **Proof Case** panel — recommended outcome, confidence, reason, risk flags, and a **friendly card per evidence item**. Recognised `type`s (`threshold`, `entity`, `timeline`, `table`, `media`, `source`, `conversation`) render as cards — `conversation` is a chat/support thread shown as a message-bubble transcript; **any other `type` falls back to a generic key/value card**, so you can always invent your own. The typed shapes (`ThresholdEvidence`, `EntityEvidence`, …) are exported — annotate a `value` (or use `satisfies Evidence`) to get them checked. **Every card type and field is catalogued in [EVIDENCE.md](https://github.com/ClearedBy/clearedby-js/blob/main/EVIDENCE.md).**
 
 ClearedBy **presents** your case to a human and pins it, tamper-evident, to their decision — it does **not** verify the *truth* of evidence. The cards are your assertions; the reviewer rules on them. Set `verified: true` on a `source` only when it's independently checkable (e.g. a signed object). `proof` is optional and fully backward-compatible.
 
