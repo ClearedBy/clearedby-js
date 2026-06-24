@@ -80,13 +80,42 @@ for (;;) {
 }
 ```
 
+## Proof cases & evidence
+
+A gate call isn't just "may I do this" — the agent submits the **case** for it, and the reviewer judges that case. Add an optional `proof` to any `gate()` / `resubmit()`:
+
+```ts
+await cb.gate({
+  action: 'refund.create',
+  params: { amount: 420, order: 'SO-118', currency: 'GBP' },
+  proof: {
+    reason: 'Customer reports the item arrived damaged; delivery confirmed.',
+    confidence: 0.9,
+    recommended_outcome: 'approve_refund',
+    risk_flags: ['full_order_value'],
+    evidence: [
+      { type: 'threshold', value: { label: 'Refund vs order total', value: 420, limit: 400, unit: '£' } },
+      { type: 'entity', value: { name: 'a.popov@example.com', subtitle: 'Order SO-118',
+          fields: [{ label: 'Orders', value: 14 }, { label: 'Prior refunds', value: 1 }],
+          badges: [{ label: 'damaged item', tone: 'warn' }] } },
+      { type: 'timeline', value: [{ label: 'Delivered', at: 'Jun 9' }, { label: 'Damage reported', at: 'Jun 10' }] },
+      { type: 'source', value: { title: 'Support ticket #4821', snippet: '…arrived cracked…', url: 'https://…' } },
+    ],
+  },
+})
+```
+
+The reviewer sees a **Proof Case** panel — recommended outcome, confidence, reason, risk flags, and a **friendly card per evidence item**. Recognised `type`s (`threshold`, `entity`, `timeline`, `table`, `media`, `source`) render as cards; **any other `type` falls back to a generic key/value card**, so you can always invent your own. The typed shapes (`ThresholdEvidence`, `EntityEvidence`, …) are exported — annotate a `value` (or use `satisfies Evidence`) to get them checked.
+
+ClearedBy **presents** your case to a human and pins it, tamper-evident, to their decision — it does **not** verify the *truth* of evidence. The cards are your assertions; the reviewer rules on them. Set `verified: true` on a `source` only when it's independently checkable (e.g. a signed object). `proof` is optional and fully backward-compatible.
+
 ## API
 
 ### `new ClearedBy({ apiKey, baseUrl?, fetch? })`
 `baseUrl` defaults to `https://app.clearedby.com`. Pass `fetch` to inject an implementation.
 
 ### `gate(input) → GateResult`
-`input`: `{ action, params?, context?, policy?, mode?, callbackUrl?, timeout?, parentItemId? }`. Returns `{ id, status: 'cleared' | 'rejected' | 'pending' | 'sent_back', … }`. Omit `policy` to use the org default. In shadow mode the call never blocks and returns `{ status: 'cleared', shadow: true, would: { verdict, rule } }`.
+`input`: `{ action, params?, context?, proof?, policy?, mode?, callbackUrl?, timeout?, parentItemId? }`. Returns `{ id, status: 'cleared' | 'rejected' | 'pending' | 'sent_back', … }`. Omit `policy` to use the org default. `proof` is the agent's case for the action (see [Proof cases & evidence](#proof-cases--evidence)). In shadow mode the call never blocks and returns `{ status: 'cleared', shadow: true, would: { verdict, rule } }`.
 
 ### `status(id) → GateResult`
 Current state of a gated item.

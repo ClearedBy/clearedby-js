@@ -106,7 +106,39 @@ async function main() {
         summary: `Refund ${order.currency} ${refund.amount} on ${order.name} (${order.customer})`,
         agent_id: 'support-agent',
         model: 'claude-opus-4-8',
-        proof: { confidence: 0.9, reason: refund.reason },
+      },
+      // The agent's case for the refund — rendered as friendly evidence cards in
+      // the reviewer's dossier (CLE-96/97). ClearedBy presents it to the human,
+      // pins it tamper-evident to their decision, and never claims it's true.
+      proof: {
+        reason: refund.reason,
+        confidence: 0.9,
+        recommended_outcome: 'approve_refund',
+        risk_flags: refund.amount >= order.total ? ['full_order_value'] : [],
+        evidence: [
+          { type: 'threshold', value: { label: 'Refund vs order total', value: refund.amount, limit: order.total, unit: '£' } },
+          {
+            type: 'entity',
+            value: {
+              name: order.customer,
+              subtitle: `Order ${order.name}`,
+              fields: [
+                { label: 'Order total', value: `${order.currency} ${order.total}` },
+                { label: 'Refund', value: `${order.currency} ${refund.amount}` },
+              ],
+              badges: [{ label: 'damaged item', tone: 'warn' }],
+            },
+          },
+          {
+            type: 'timeline',
+            value: [
+              { label: 'Delivered' },
+              { label: 'Damage reported', detail: 'photos attached to the ticket' },
+              { label: 'Refund requested' },
+            ],
+          },
+          { type: 'source', value: { title: `Support ticket · ${order.name}`, snippet: refund.reason } },
+        ],
       },
     }
 

@@ -16,10 +16,92 @@ export interface ClearedByOptions {
   fetch?: typeof fetch
 }
 
+/**
+ * The agent's structured case for an action (CLE-96/97). Entirely optional and
+ * backward-compatible: omit it and the gate still works. When present, the
+ * reviewer sees a Proof Case panel — recommended outcome, confidence, reason,
+ * risk flags, and friendly evidence cards (see {@link Evidence}).
+ *
+ * ClearedBy never verifies the *truth* of a proof case — it presents your case
+ * to a human and pins it, tamper-evident, to their decision. The cards are your
+ * assertions; the reviewer rules on them.
+ */
+export interface ProofCase {
+  /** Plain-language reason this action should happen. */
+  reason?: string
+  /** 0..1 — the agent's own confidence. Shown as "agent confidence N%". */
+  confidence?: number
+  /** e.g. 'approve_refund'. Rendered as a "recommends ·" pill. */
+  recommended_outcome?: string
+  /** What the human should weigh, e.g. ['high_value', 'first_order']. */
+  risk_flags?: string[]
+  /** Typed evidence cards rendered in the reviewer's dossier. */
+  evidence?: Evidence[]
+}
+
+/**
+ * One piece of evidence. ClearedBy renders a friendly card for each known
+ * `type` below; any other `type` falls back to a generic key/value card — so
+ * you can always invent your own and it still shows.
+ */
+export type Evidence =
+  | { type: 'threshold'; value: ThresholdEvidence }
+  | { type: 'entity'; value: EntityEvidence }
+  | { type: 'timeline'; value: TimelineEntry[] }
+  | { type: 'table'; value: TableEvidence }
+  | { type: 'media'; value: MediaEvidence }
+  | { type: 'source'; value: SourceEvidence }
+  | { type: 'note'; value: string }
+  | { type: string; value: unknown }
+
+/** A measured value against a limit — renders as a labelled bar. */
+export interface ThresholdEvidence {
+  label: string
+  value: number
+  limit?: number
+  unit?: string
+  status?: 'ok' | 'warn' | 'over'
+}
+/** A profile card — a customer, an order, an account. */
+export interface EntityEvidence {
+  name: string
+  subtitle?: string
+  fields?: { label: string; value: string | number }[]
+  badges?: { label: string; tone?: 'ok' | 'warn' | 'risk' }[]
+}
+/** One event in a timeline card. */
+export interface TimelineEntry {
+  label: string
+  /** ISO timestamp; shown right-aligned. */
+  at?: string
+  detail?: string
+}
+/** Tabular evidence — line items, comparisons. */
+export interface TableEvidence {
+  columns: string[]
+  rows: (string | number)[][]
+}
+/** An image — a screenshot or photo. Give an https URL or a data: URL. */
+export interface MediaEvidence {
+  url?: string
+  dataUrl?: string
+  caption?: string
+}
+/** A citation — a support thread, a dispute, a source document. */
+export interface SourceEvidence {
+  title?: string
+  url?: string
+  snippet?: string
+  /** Set true only if independently verifiable (e.g. a signed object). */
+  verified?: boolean
+}
+
 export interface GateInput {
   action: string
   params?: Record<string, unknown>
   context?: Record<string, unknown>
+  /** The agent's case for this action — shown to the reviewer. */
+  proof?: ProofCase
   /** Named policy; omit to use the org default. */
   policy?: string
   mode?: 'enforce' | 'shadow'
@@ -116,6 +198,7 @@ export class ClearedBy {
       action: input.action,
       params: input.params ?? {},
       context: input.context ?? {},
+      ...(input.proof ? { proof: input.proof } : {}),
       ...(input.policy ? { policy: input.policy } : {}),
       ...(input.mode ? { mode: input.mode } : {}),
       ...(input.callbackUrl ? { callback_url: input.callbackUrl } : {}),

@@ -1,6 +1,6 @@
 {
   "name": "@clearedby/sdk",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Official ClearedBy SDK — gate agent actions, wait for human review, guard a function.",
   "license": "MIT",
   "type": "module",
