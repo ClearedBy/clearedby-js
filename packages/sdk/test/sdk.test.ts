@@ -65,8 +65,8 @@ describe('ClearedBy.guard', () => {
   it('waits through pending → cleared, then runs fn', async () => {
     const { f } = fakeFetch([
       { status: 202, body: { id: 'wi1', status: 'pending' } }, // gate
-      { status: 200, body: { id: 'wi1', status: 'pending' } }, // wait poll 1
-      { status: 200, body: { id: 'wi1', status: 'cleared' } }, // wait poll 2
+      { status: 204, body: null }, // long-poll 1: still waiting
+      { status: 200, body: { id: 'wi1', status: 'cleared' } }, // long-poll 2: decided
     ])
     const out = await client(f).guard({ action: 'refund.create' }, () => 'ran')
     expect(out).toBe('ran')
@@ -234,5 +234,62 @@ describe('ClearedBy.revoke / withdraw (CLE-201)', () => {
       const r = await client(f).wait('wi1', { timeoutMs: 50, pollMs: 1 })
       expect(r.status).toBe(status)
     }
+  })
+})
+
+// CLE-224: wait() long-polls GET /v1/gate/:id/wait; 404 → falls back to status polling.
+describe('ClearedBy.wait long-poll', () => {
+  it('loops through 204s on /wait until the item settles', async () => {
+    const { f, calls } = fakeFetch([
+      { status: 204, body: null },
+      { status: 204, body: null },
+      { status: 200, body: { id: 'wi1', status: 'cleared' } },
+    ])
+    const r = await client(f).wait('wi1', { pollMs: 1 })
+    expect(r.status).toBe('cleared')
+    expect(calls).toHaveLength(3)
+    for (const c of calls) {
+      const u = new URL(c.url)
+      expect(u.pathname).toBe('/v1/gate/wi1/wait')
+      expect(c.init.method).toBe('GET')
+      expect(c.init.headers.authorization).toBe('Bearer cb_live_test')
+    }
+    // Default 5-minute timeout → the server's full 55 s budget per request.
+    expect(new URL(calls[0]!.url).searchParams.get('timeout')).toBe('55')
+  })
+
+  it('asks the server for no more than the time left', async () => {
+    const { f, calls } = fakeFetch([{ status: 200, body: { id: 'wi1', status: 'rejected' } }])
+    await client(f).wait('wi1', { timeoutMs: 10_000 })
+    expect(new URL(calls[0]!.url).searchParams.get('timeout')).toBe('10')
+  })
+
+  it('times out with 408 timeout while /wait keeps answering 204', async () => {
+    const { f } = fakeFetch([{ status: 204, body: null }])
+    const err = await client(f).wait('wi1', { timeoutMs: 30, pollMs: 5 }).catch((e) => e)
+    expect(err).toBeInstanceOf(ClearedByError)
+    expect([err.status, err.code]).toEqual([408, 'timeout'])
+  })
+
+  it('falls back to polling GET /v1/gate/:id when /wait is 404 (an old server)', async () => {
+    const { f, calls } = fakeFetch([
+      { status: 404, body: {} },
+      { status: 200, body: { id: 'wi1', status: 'pending' } },
+      { status: 200, body: { id: 'wi1', status: 'cleared' } },
+    ])
+    const r = await client(f).wait('wi1', { pollMs: 1 })
+    expect(r.status).toBe('cleared')
+    expect(calls.map((c) => new URL(c.url).pathname)).toEqual(['/v1/gate/wi1/wait', '/v1/gate/wi1', '/v1/gate/wi1'])
+  })
+
+  it('a missing item still throws 404 (via the status fallback)', async () => {
+    const nf = { status: 404, body: { error: { code: 'not_found', message: 'no such work item' } } }
+    const { f } = fakeFetch([nf, nf])
+    await expect(client(f).wait('nope', { pollMs: 1 })).rejects.toMatchObject({ status: 404, code: 'not_found' })
+  })
+
+  it('surfaces other errors from /wait', async () => {
+    const { f } = fakeFetch([{ status: 401, body: { error: { code: 'unauthorized', message: 'API key has been revoked' } } }])
+    await expect(client(f).wait('wi1', { pollMs: 1 })).rejects.toMatchObject({ status: 401, code: 'unauthorized' })
   })
 })

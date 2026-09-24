@@ -1045,14 +1045,43 @@ export class ClearedBy {
    * — wait() returns it (with the reviewer's reason) rather than hanging, so the
    * caller can regenerate and resubmit (CLE-140). A test item comes back with
    * `test: true` (CLE-221): don't act on it, whatever its status.
+   *
+   * CLE-224: long-polls `GET /v1/gate/:id/wait` (the server holds each request
+   * up to 55 s and answers the moment the item settles, or `204` to keep
+   * waiting), so a decision arrives within a second or two instead of on the
+   * next poll. Falls back to polling `GET /v1/gate/:id` every `pollMs` only if
+   * the server has no /wait (404).
    */
   async wait(id: string, opts: { timeoutMs?: number; pollMs?: number } = {}): Promise<GateResult> {
     const deadline = Date.now() + (opts.timeoutMs ?? 5 * 60_000)
     const pollMs = opts.pollMs ?? 2_000
+    const timedOut = () => new ClearedByApiError(`wait timed out for ${id}`, 408, 'timeout')
+    let longPoll = true
     for (;;) {
+      if (longPoll) {
+        const started = Date.now()
+        const secs = Math.min(55, Math.max(1, Math.ceil((deadline - started) / 1000)))
+        const { status, json } = await this.t.raw('GET', `/v1/gate/${seg(id)}/wait`, { query: { timeout: secs } })
+        if (status === 404) {
+          // No /wait (an old server), or no such item: status() tells them apart.
+          longPoll = false
+          continue
+        }
+        if (status === 200) {
+          const cur = json as GateResult
+          if (cur.status !== 'pending' && cur.status !== 'escalated') return cur
+        } else if (status !== 204) {
+          throw apiError(status, json, 'wait')
+        }
+        if (Date.now() >= deadline) throw timedOut()
+        // A 204 that came straight back (a proxy, not the long-poll) mustn't spin.
+        const elapsed = Date.now() - started
+        if (elapsed < pollMs) await sleep(Math.min(pollMs - elapsed, Math.max(0, deadline - Date.now())))
+        continue
+      }
       const cur = await this.status(id)
       if (cur.status !== 'pending' && cur.status !== 'escalated') return cur
-      if (Date.now() >= deadline) throw new ClearedByApiError(`wait timed out for ${id}`, 408, 'timeout')
+      if (Date.now() >= deadline) throw timedOut()
       await sleep(pollMs)
     }
   }
@@ -1605,6 +1634,30 @@ export interface OrgKey {
   name: string
 }
 
+/** One of an org's keys, as `listOrgKeys` / `revokeOrgKey` return it (CLE-224). Never the secret. */
+export interface OrgKeyInfo {
+  key_id: string
+  name: string
+  prefix: string
+  /** The agent the key is bound to (a verified doer), or null. */
+  agent_id: string | null
+  created_at: string
+  last_used_at: string | null
+  /** When the key stopped working (revoked, or its rotation grace ran out). Null while active. */
+  revoked_at: string | null
+  /** When a rotated-out key stops working, while its grace period is still running. */
+  revokes_at: string | null
+  /** `partner:<id>` or `user:<id>` once revoked or scheduled. */
+  revoked_by: string | null
+  active: boolean
+}
+
+/** `rotateOrgKey` (CLE-224): the replacement key (secret shown once) and the key it replaced. */
+export interface RotatedOrgKey extends OrgKey {
+  agent_id: string | null
+  replaced: OrgKeyInfo
+}
+
 export type ReviewerRole = 'owner' | 'admin' | 'reviewer'
 
 /** PUT /v1/partner/orgs/:id/reviewers/:external_subject. Replaces the whole reviewer. */
@@ -1752,6 +1805,61 @@ export class ClearedByPartner {
       ok: [201],
       what: 'create org key',
     })
+  }
+
+  /**
+   * CLE-224: every `cb_live_` key the org has had, newest first, revoked ones
+   * included (GET /v1/partner/orgs/:id/keys). Never the secrets.
+   */
+  async listOrgKeys(orgId: string): Promise<OrgKeyInfo[]> {
+    const json = await this.t.request<{ keys: OrgKeyInfo[] }>('GET', `/v1/partner/orgs/${seg(orgId)}/keys`, {
+      what: 'list org keys',
+    })
+    return json.keys
+  }
+
+  /**
+   * CLE-224: revoke one org key (DELETE /v1/partner/orgs/:id/keys/:keyId). Its
+   * next request gets `401`. Idempotent; 404 for a key that isn't the org's.
+   */
+  async revokeOrgKey(orgId: string, keyId: string): Promise<OrgKeyInfo & { org_id: string }> {
+    return this.t.request('DELETE', `/v1/partner/orgs/${seg(orgId)}/keys/${seg(keyId)}`, { what: 'revoke org key' })
+  }
+
+  /**
+   * CLE-224: replace a key (POST /v1/partner/orgs/:id/keys/:keyId/rotate). The
+   * new key has the same name and agent binding; `api_key` is returned once. The
+   * old key is revoked at once, or after `graceSeconds` (max 86400) so you can
+   * roll the new one out first. `409 key_revoked` if it was already revoked or
+   * rotated.
+   */
+  async rotateOrgKey(orgId: string, keyId: string, opts: { graceSeconds?: number } = {}): Promise<RotatedOrgKey> {
+    return this.t.request<RotatedOrgKey>('POST', `/v1/partner/orgs/${seg(orgId)}/keys/${seg(keyId)}/rotate`, {
+      body: opts.graceSeconds === undefined ? {} : { grace_seconds: opts.graceSeconds },
+      ok: [201],
+      what: 'rotate org key',
+    })
+  }
+
+  // ---- Webhooks ----
+
+  /**
+   * CLE-224: subscribe one of your orgs to lifecycle events (POST
+   * /v1/webhooks?org_id=) with the partner key. `secret` is returned once.
+   */
+  async createWebhook(orgId: string, input: CreateWebhookInput): Promise<Webhook & { secret: string }> {
+    return this.t.request('POST', '/v1/webhooks', { query: { org_id: orgId }, body: input, ok: [201], what: 'create webhook' })
+  }
+
+  /** CLE-224: the org's subscriptions, newest first (GET /v1/webhooks?org_id=). Secrets are never returned. */
+  async listWebhooks(orgId: string): Promise<Webhook[]> {
+    const json = await this.t.request<{ webhooks: Webhook[] }>('GET', '/v1/webhooks', { query: { org_id: orgId }, what: 'list webhooks' })
+    return json.webhooks
+  }
+
+  /** CLE-224: unsubscribe (DELETE /v1/webhooks/:id?org_id=). 404 for an id that isn't that org's. */
+  async deleteWebhook(orgId: string, id: string): Promise<{ deleted: true; id: string }> {
+    return this.t.request('DELETE', `/v1/webhooks/${seg(id)}`, { query: { org_id: orgId }, what: 'delete webhook' })
   }
 
   // ---- Reviewers ----

@@ -194,6 +194,26 @@ authorization, or `code: 'status_unavailable'` if it can't ask (fails closed).
 Default off. For a bare receipt, `verifyReceiptOnline(receipt, { keys,
 checkStatus: true })` from `@clearedby/sdk/receipt` does the same.
 
+## Before go-live: `npx @clearedby/sdk doctor`
+
+The go-live checker for partner integrations. It checks your settings, then
+sends your execution endpoint synthetic dispatches it signs itself (a valid
+one, a bad signature, a stale timestamp, tampered params, a redelivery, and a
+`cleared` dispatch whose receipt ClearedBy never signed) and checks each gets
+the right answer. With `--full` it pushes a harmless `doctor.noop` approval
+through a sandbox org for real and checks delivery, idempotency, your
+completion report and revocation. Every failure comes with a one-line fix.
+
+```bash
+CLEAREDBY_PARTNER_KEY=cb_partner_... npx @clearedby/sdk doctor --full
+npx @clearedby/sdk doctor --json    # CI: exit code 1 on any failure
+```
+
+Your executor should treat requests carrying `clearedby-doctor: 1` as dry runs
+(verify and dedupe as usual, never execute or record) and never act on the
+action `doctor.noop`. Programmatic use: `runDoctor(opts)` and
+`formatDoctorReport(report)` from `@clearedby/sdk/doctor`.
+
 ## API
 
 Two clients cover the whole HTTP API, so you never need your own `fetch` helper:
@@ -226,7 +246,7 @@ Both take `{ baseUrl?, fetch? }`. `baseUrl` defaults to `https://app.clearedby.c
 | Method | HTTP | Returns |
 | --- | --- | --- |
 | `status(id, { orgId? })` | `GET /v1/gate/:id` | `GateResult` |
-| `wait(id, { timeoutMs?, pollMs? })` | polls `status` | `GateResult` once no longer `pending` / `escalated`; 408 `timeout` error otherwise |
+| `wait(id, { timeoutMs?, pollMs? })` | long-polls `GET /v1/gate/:id/wait` (polls `status` every `pollMs` only on a server without it) | `GateResult` once no longer `pending` / `escalated`; 408 `timeout` error otherwise |
 | `revoke(id, reason)` | `POST /v1/gate/:id/revoke` | `RevokeResult`. Gives back an approval before it runs. |
 | `withdraw(id, reason?)` | `POST /v1/gate/:id/withdraw` | `WithdrawResult`. Pulls a still-open request. |
 
@@ -296,6 +316,9 @@ For platforms that embed ClearedBy. Server-side only. See `docs/partner-api.md` 
 | `updateOrg(orgId, { name?, currency?, shop_domains?, execution_url?, notify_url?, theme? })` | `PATCH /v1/partner/orgs/:id` | `PartnerOrg`. `null` clears an override. |
 | `getOrgTheme(orgId)` | `GET /v1/partner/orgs/:id/theme` | the effective `ClearedByTheme \| null` |
 | `createOrgKey(orgId, { name? })` | `POST /v1/partner/orgs/:id/keys` | `OrgKey`: a new `cb_live_` key, shown once. Use it with `new ClearedBy({ apiKey })`. |
+| `listOrgKeys(orgId)` | `GET /v1/partner/orgs/:id/keys` | `OrgKeyInfo[]`, newest first, revoked ones included. Never the secret. |
+| `revokeOrgKey(orgId, keyId)` | `DELETE /v1/partner/orgs/:id/keys/:keyId` | `OrgKeyInfo`. The key's next request is `401`. Idempotent. |
+| `rotateOrgKey(orgId, keyId, { graceSeconds? })` | `POST /v1/partner/orgs/:id/keys/:keyId/rotate` | `RotatedOrgKey`: a new key (same name + agent binding, shown once); the old one is revoked now or after `graceSeconds` (max 86400). |
 
 **Reviewers**
 
@@ -348,7 +371,7 @@ For platforms that embed ClearedBy. Server-side only. See `docs/partner-api.md` 
 | `eraseSubject(orgId, subjectId)` | `POST /v1/partner/orgs/:id/erasure` | `OrgErasureResult`. The subject goes in the body, never the URL. Idempotent. |
 | `eraseSubjectEverywhere(subjectId)` | `POST /v1/partner/erasure` | `PartnerErasureResult`: every org you own; retry while `complete: false` |
 
-Webhook subscriptions are per org and need the org key: `new ClearedBy({ apiKey }).createWebhook(...)` with the key from `createOrg` / `createOrgKey`.
+Webhook subscriptions are per org. Manage them with the partner key: `createWebhook(orgId, input)`, `listWebhooks(orgId)` and `deleteWebhook(orgId, id)` (`/v1/webhooks?org_id=`), or with the org key via `new ClearedBy({ apiKey }).createWebhook(...)`.
 
 ### Embedded approval UI: `@clearedby/sdk/partner-proxy`
 

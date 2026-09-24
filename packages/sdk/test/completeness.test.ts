@@ -302,6 +302,43 @@ describe('ClearedByPartner: orgs, keys, reviewers', () => {
     expect(r.result.api_key).toBe('cb_live_y')
   })
 
+  // CLE-224: key list / revoke / rotate.
+  it('listOrgKeys unwraps', async () => {
+    const r = await sent((f) => partner(f).listOrgKeys('o1'), { body: { org_id: 'o1', keys: [{ key_id: 'k1', active: true }] } })
+    expect([r.method, r.url, r.body, r.auth]).toEqual(['GET', `${BASE}/v1/partner/orgs/o1/keys`, undefined, 'Bearer cb_partner_k'])
+    expect(r.result).toEqual([{ key_id: 'k1', active: true }])
+  })
+
+  it('revokeOrgKey', async () => {
+    const r = await sent((f) => partner(f).revokeOrgKey('o1', 'k/1'), { body: { org_id: 'o1', key_id: 'k/1', active: false } })
+    expect([r.method, r.url, r.body]).toEqual(['DELETE', `${BASE}/v1/partner/orgs/o1/keys/k%2F1`, undefined])
+    expect(r.result.active).toBe(false)
+  })
+
+  it('rotateOrgKey sends grace_seconds (or an empty body)', async () => {
+    const body = { org_id: 'o1', key_id: 'k2', api_key: 'cb_live_new', replaced: { key_id: 'k1', revokes_at: 'x' } }
+    const r = await sent((f) => partner(f).rotateOrgKey('o1', 'k1', { graceSeconds: 3600 }), { status: 201, body })
+    expect([r.method, r.url, r.body]).toEqual(['POST', `${BASE}/v1/partner/orgs/o1/keys/k1/rotate`, { grace_seconds: 3600 }])
+    expect(r.result.api_key).toBe('cb_live_new')
+    const now = await sent((f) => partner(f).rotateOrgKey('o1', 'k1'), { status: 201, body })
+    expect(now.body).toEqual({})
+    await expect(sent((f) => partner(f).rotateOrgKey('o1', 'k1'), { status: 409, body: { error: { code: 'key_revoked', message: 'm' } } }))
+      .rejects.toMatchObject({ status: 409, code: 'key_revoked' })
+  })
+
+  // CLE-224: webhooks with the partner key, scoped by ?org_id=.
+  it('createWebhook / listWebhooks / deleteWebhook pass org_id', async () => {
+    const input = { url: 'https://hooks.example/cb', events: ['decision.cleared' as const] }
+    const c = await sent((f) => partner(f).createWebhook('o1', input), { status: 201, body: { id: 'w1', secret: 'whsec_x' } })
+    expect([c.method, c.url, c.body, c.auth]).toEqual(['POST', `${BASE}/v1/webhooks?org_id=o1`, input, 'Bearer cb_partner_k'])
+    expect(c.result.secret).toBe('whsec_x')
+    const l = await sent((f) => partner(f).listWebhooks('o1'), { body: { webhooks: [{ id: 'w1' }] } })
+    expect([l.method, l.url]).toEqual(['GET', `${BASE}/v1/webhooks?org_id=o1`])
+    expect(l.result).toEqual([{ id: 'w1' }])
+    const d = await sent((f) => partner(f).deleteWebhook('o1', 'w1'), { body: { deleted: true, id: 'w1' } })
+    expect([d.method, d.url]).toEqual(['DELETE', `${BASE}/v1/webhooks/w1?org_id=o1`])
+  })
+
   it('upsertReviewer reports created from the status', async () => {
     const input = { display_name: 'Sam', role: 'reviewer' as const, authority: { 'shopify.refund.create': 50000 } }
     const r = await sent((f) => partner(f).upsertReviewer('o1', 'user@17', input), { status: 201, body: { external_subject: 'user@17', active: true } })

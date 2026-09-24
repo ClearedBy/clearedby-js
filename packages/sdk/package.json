@@ -1,6 +1,6 @@
 {
   "name": "@clearedby/sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Official ClearedBy SDK — gate agent actions, wait for human review, and run the whole org + partner API.",
   "license": "MIT",
   "type": "module",
@@ -22,6 +22,10 @@
     "./partner-proxy": {
       "types": "./src/partner-proxy.ts",
       "import": "./src/partner-proxy.ts"
+    },
+    "./doctor": {
+      "types": "./src/doctor.ts",
+      "import": "./src/doctor.ts"
     }
   },
   "files": ["dist"],
@@ -40,6 +44,9 @@
   },
   "publishConfig": {
     "access": "public",
+    "bin": {
+      "clearedby": "./dist/cli.js"
+    },
     "main": "./dist/index.js",
     "module": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -59,6 +66,10 @@
       "./partner-proxy": {
         "types": "./dist/partner-proxy.d.ts",
         "import": "./dist/partner-proxy.js"
+      },
+      "./doctor": {
+        "types": "./dist/doctor.d.ts",
+        "import": "./dist/doctor.js"
       }
     }
   },

@@ -27,8 +27,8 @@ pnpm demo
 This plays ClearedBy's side locally with a throwaway key and prints:
 
 ```
-1. first delivery: 200 {"status":"executed","ref":"re_demo_1"}
-2. retry (attempt 2, fresh receipt): 409 {"status":"already_executed","ref":"re_demo_1"}
+1. first delivery: 200 {"status":"executed","executed":true,"execution_id":"re_demo_1"}
+2. retry (attempt 2, fresh receipt): 409 {"status":"already_executed","executed":false,"execution_id":"re_demo_1"}
 3. forged amount: 401 {"error":"receipt_mismatch"}
 ```
 
@@ -37,8 +37,15 @@ This plays ClearedBy's side locally with a throwaway key and prints:
 ```bash
 CLEAREDBY_SIGNING_SECRET=odsec_...           # the credential's secret, or GET /v1/signing-secrets
 CLEAREDBY_AUDIENCE=https://exec.you.example  # optional; must match `audience` sent at gate time
+CLEAREDBY_EXECUTOR_KEY=cb_live_...           # optional; reports completion with complete()
 pnpm start                                   # listens on :8787/on-decision
 ```
+
+A partner serving many orgs sets `CLEAREDBY_PARTNER_KEY` instead of
+`CLEAREDBY_SIGNING_SECRET`: each org's secret is then looked up (and cached)
+by the envelope's `org_id`. The receiver verifies with `checkStatus: true`, so
+an approval revoked after it was dispatched answers `200 {"status":"revoked"}`
+and runs nothing.
 
 Policy:
 
@@ -48,6 +55,26 @@ on_decision:
     url: https://exec.you.example/on-decision
     auth: exec-credential   # optional; signs with that credential's odsec_ secret
 ```
+
+## Check it with the doctor
+
+```bash
+CLEAREDBY_PARTNER_KEY=cb_partner_... npx @clearedby/sdk doctor --full --audience https://exec.you.example
+```
+
+The receiver passes every check (`packages/sdk/test/doctor.test.ts` runs it
+against a fake ClearedBy). What makes it pass:
+
+- requests with `clearedby-doctor: 1` are dry runs: verified and deduped as
+  usual, never executed or recorded;
+- the action `doctor.noop` is recorded (so a replay gets `409`) and reported
+  done, but never executed;
+- answers carry the optional contract `{ status, executed, execution_id }`, so
+  the doctor can prove a replay wasn't executed twice.
+
+With `--full`, ClearedBy's real dispatch goes to your configured
+`execution_url` (a tunnel in development). Completion is only reported when
+`CLEAREDBY_EXECUTOR_KEY` is a key for the org being tested.
 
 ## In production
 
