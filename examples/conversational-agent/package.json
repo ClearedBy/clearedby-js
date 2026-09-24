@@ -1,0 +1,20 @@
+{
+  "name": "@clearedby/example-conversational-agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A Claude support agent that gates its own consequential action (a refund) through ClearedBy mid-conversation.",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.106.0",
+    "@clearedby/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "tsx": "^4.22.4",
+    "typescript": "^5.7.2"
+  }
+}

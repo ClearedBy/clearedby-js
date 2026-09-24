@@ -1,0 +1,25 @@
+{
+  "name": "@clearedby/example-partner-approvals-next",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Embed an approval queue in a Next.js (App Router) app: @clearedby/sdk/partner-proxy on the server, @clearedby/react in the browser. The partner key never reaches the browser.",
+  "scripts": {
+    "dev": "next dev -p 3219",
+    "build": "next build",
+    "start": "next start -p 3219",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clearedby/react": "workspace:*",
+    "@clearedby/sdk": "workspace:*",
+    "next": "^14.2.21",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@clearedby/example-dispatch-receiver",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A partner execution endpoint for ClearedBy on_decision dispatch v2: verifyDispatch, dedupe on work_item_id, 409 already_executed on repeats, execute only from the receipt's params.",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "demo": "tsx src/demo.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clearedby/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "tsx": "^4.22.4",
+    "typescript": "^5.7.2"
+  }
+}

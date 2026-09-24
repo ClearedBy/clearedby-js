@@ -84,4 +84,8 @@ describe('get_ledger', () => {
     const r = await getLedger(stub({ ledger: async () => ({ entries: [{}, {}, {}] }) }), { limit: 3 })
     expect(r.text).toContain('3 recent attestations')
   })
+  it('counts the API\'s real `rows` shape (CLE-211)', async () => {
+    const r = await getLedger(stub({ ledger: async () => ({ rows: [{}, {}], next_cursor: null }) }), { limit: 2 })
+    expect(r.text).toContain('2 recent attestations')
+  })
 })

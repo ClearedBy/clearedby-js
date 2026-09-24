@@ -132,7 +132,8 @@ export async function checkPolicy(
 export async function getLedger(cb: ClearedBy, args: { limit?: number }): Promise<ToolResult> {
   try {
     const r = await cb.ledger({ limit: args.limit ?? 20 })
-    const n = Array.isArray(r.entries) ? r.entries.length : 0
+    // The API returns `rows` (CLE-211); `entries` is the SDK's deprecated alias.
+    const n = Array.isArray(r.rows) ? r.rows.length : Array.isArray(r.entries) ? r.entries.length : 0
     return { text: `${n} recent attestation${n === 1 ? '' : 's'} (newest first).`, structured: { ...r } }
   } catch (err) {
     return { text: `Ledger fetch failed: ${err instanceof Error ? err.message : 'unknown error'}`, isError: true, structured: {} }

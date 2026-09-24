@@ -73,6 +73,33 @@ Optional: `CLEAREDBY_BASE_URL` (defaults to `https://app.clearedby.com`).
 }
 ```
 
+## Remote connector (claude.ai / Desktop / mobile)
+
+This `@clearedby/mcp` package is the **local stdio** server — perfect for Claude
+Code/Desktop run on your machine with an API key.
+
+For **claude.ai** (and Claude Desktop/mobile/Cowork), ClearedBy is also a hosted
+**custom connector** — no install, no API key. It's the same five-or-so tools over
+an OAuth-protected remote endpoint:
+
+1. In Claude, go to **Settings → Connectors → Add custom connector**.
+2. Enter the URL: **`https://app.clearedby.com/mcp`**
+3. Click **Connect**. You'll be sent to ClearedBy to sign in and approve. Claude
+   then talks to the gate as a verified **`claude`** agent scoped to your org.
+
+The remote connector is **non-blocking**: a held action returns immediately with a
+clearance id (it never holds the request open for a human). Poll it later with
+`get_clearance(id)`, or find outstanding ones with `list_clearances`. For
+automated notification, subscribe to the org webhooks
+(`decision.cleared` / `decision.rejected` / …). Revoke access any time from
+**Settings → Agents** by deactivating the **Claude** agent (this also revokes its
+OAuth tokens).
+
+| Surface | Transport | Auth | `request_clearance` when held |
+|---------|-----------|------|-------------------------------|
+| Claude Code / Desktop (local) | stdio (`npx @clearedby/mcp`) | `CLEAREDBY_API_KEY` | waits up to 10 min |
+| claude.ai / Desktop / mobile  | remote (`/mcp`) | OAuth (Connect button) | returns a clearance id to poll |
+
 ## Example
 
 > **Agent:** I'm about to issue a £400 refund on order SO-118.

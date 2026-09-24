@@ -112,7 +112,7 @@ images load with no referrer and self-hide if they fail. Click to enlarge.
 | `title` | string | | heading |
 | `url` | string (https) | | "Open original" link (new tab, `noopener`) |
 | `snippet` | string | | excerpt; long ones expand in place |
-| `verified` | boolean | | badge — set **only** if independently verifiable (e.g. a signed object) |
+| `verified` | boolean | | **deprecated, ignored.** An agent can't mark its own evidence verified. See "Agent claims vs verified evidence" below. |
 
 ```jsonc
 { "type": "source", "value": { "title": "Support ticket #4821", "snippet": "…arrived cracked…", "url": "https://…" } }
@@ -183,3 +183,18 @@ So compact cards (a bar, a profile) sit two-up while rich cards (a thread, an im
 - **Forward-compatible.** New card types don't need a server deploy — `value` is open-typed end to end. The SDK
   ships TypeScript types (`ThresholdEvidence`, `EntityEvidence`, … `ConversationEvidence`) — annotate a `value` or
   use `satisfies Evidence` to get them checked.
+
+## Agent claims vs verified evidence
+
+Everything in `proof` is the agent's **claim**. ClearedBy stores each item with `provenance: "agent_claim"`, whatever
+you send, and the reviewer sees it with an **Agent says** badge. Evidence is shown as verified only when it came
+from somewhere the agent can't write to:
+
+| `provenance` | Source | Badge |
+| --- | --- | --- |
+| `agent_claim` | the agent's `proof.evidence` | Agent says |
+| `partner_verified` | a partner's backend, with its partner key (`ClearedByPartner.attachEvidence`) | Verified by <partner> |
+| `clearedby_computed` | ClearedBy itself (catalogue counts, the currency check, `sum()`/`count()` history) | Checked by ClearedBy |
+
+A policy rule can require verified evidence before it auto-clears: `requires_verified: [order_lookup]`. An agent
+claim of the same type never satisfies it. See `docs/partner-api.md` → "Claims vs verified evidence".

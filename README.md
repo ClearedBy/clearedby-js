@@ -23,6 +23,7 @@ await cb.guard(
 | --- | --- |
 | [`@clearedby/sdk`](packages/sdk) | You're writing code. Tiny, dependency-free; works anywhere `fetch` exists (Node 18+, edge, browser). |
 | [`@clearedby/mcp`](packages/mcp) | You want **Claude Code/Desktop or any MCP client** to gate its own actions — no SDK code. |
+| [`@clearedby/react`](packages/react) | You're a **platform embedding approvals** for your merchants: a drop-in React review queue, plain-English review panel, decision buttons and approval rules, styled by your design system. Pairs with `@clearedby/sdk/partner-proxy` on your server. |
 
 There's also an n8n community node (`n8n-nodes-clearedby`) for no-code workflows.
 

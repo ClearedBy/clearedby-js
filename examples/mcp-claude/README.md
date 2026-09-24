@@ -1,7 +1,7 @@
 # Gate Claude's actions via MCP
 
 Give **Claude Code / Claude Desktop** (or any MCP client) the ability to gate its
-own consequential actions through ClearedBy — no SDK code required. The
+own consequential actions through ClearedBy — **no SDK code**. The
 [`@clearedby/mcp`](../../packages/mcp) server exposes three tools:
 
 | Tool | What it does |
@@ -10,11 +10,13 @@ own consequential actions through ClearedBy — no SDK code required. The
 | `check_policy` | Dry-run: what would the policy decide, recording nothing. |
 | `get_ledger` | Recent tamper-evident attestations. |
 
-## Configure
+## Try it in 4 steps
 
-Add the server to your MCP client config (e.g. Claude Desktop's
-`claude_desktop_config.json`):
+**1. Mint an agent-bound key** — ClearedBy → Settings → **Agents** → create `support-bot` → mint a key (`cb_live_…`). Binding the key to an agent is what makes Claude a *verified* doer on the ledger.
 
+**2. Add the server to your client config:**
+
+Claude Desktop — `claude_desktop_config.json`:
 ```jsonc
 {
   "mcpServers": {
@@ -27,20 +29,24 @@ Add the server to your MCP client config (e.g. Claude Desktop's
 }
 ```
 
-Use an **agent-bound** key (ClearedBy → Settings → API keys, bound to an agent) so
-each action is attributed to a verified agent. Optional: `CLEAREDBY_BASE_URL`
-(defaults to `https://app.clearedby.com`).
+Claude Code — `claude mcp add clearedby --env CLEAREDBY_API_KEY=cb_live_… -- npx @clearedby/mcp`
 
-## In practice
+(Optional `CLEAREDBY_BASE_URL`, defaults to `https://app.clearedby.com`.)
 
-> **You:** Refund £400 on order SO-118.
-> **Claude:** *calls* `request_clearance { action: "refund.create", params: { amount: 400, order: "SO-118" }, model: "claude-opus-4-8", confidence: 0.9, reason: "item arrived damaged" }`
-> **ClearedBy:** ↩️ Sent back to revise: "Goodwill cap is £100." *(parent_item_id: wi_abc)*
+**3. Restart the client**, then prompt Claude to do something consequential:
+
+> **You:** Issue a £842 refund on order SO-4471.
+> **Claude:** *calls* `request_clearance { action: "refund.create", params: { amount: 842, order: "SO-4471" }, model: "claude-opus-4-8", confidence: 0.9, reason: "item arrived damaged" }`
+> **ClearedBy:** ⏳ held for review.
+
+**4. Open the workspace and send it back** with a note like *"Goodwill cap is £100"*:
+
+> **ClearedBy:** ↩️ Sent back to revise: "Goodwill cap is £100." *(parent_item_id: `wi_abc`)*
 > **Claude:** *revises, then* `request_clearance { …, amount: 100, parentItemId: "wi_abc" }`
 > **ClearedBy:** ✅ Approved by a reviewer. Safe to proceed.
 
-The agent never decides for itself — policy clears the safe ones, a human approves,
-rejects, or **sends back** the rest, and every step is signed into your org's chain.
+The agent never decides for itself — policy clears the safe ones, a human approves, rejects, or **sends back** the rest, and every step (including the revise) is signed into your org's chain.
 
-See also: [`shopify-refund-agent`](../shopify-refund-agent) for the same revise loop
-via the SDK.
+> Want a higher-stakes loop? Point the key's agent at the `finance-ops` or `banking-ops` policy and ask Claude to "extend an overdraft by £12,000" — it'll hit `dual_review + passkey`.
+
+See also: [`shopify-refund-agent`](../shopify-refund-agent) for the same revise loop via the SDK, and the **gallery** (`clearedby-live-tester`) scenario 33.

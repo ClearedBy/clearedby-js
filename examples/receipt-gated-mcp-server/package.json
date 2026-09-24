@@ -1,0 +1,22 @@
+{
+  "name": "@clearedby/example-receipt-gated-mcp-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A THIRD-PARTY MCP server that enforces ClearedBy authorization offline: verify the signed receipt locally, execute only if valid, hand back execution proof. No ClearedBy API key, no ClearedBy call at decision time.",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "demo": "tsx src/demo.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clearedby/sdk": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "tsx": "^4.22.4",
+    "typescript": "^5.7.2"
+  }
+}
